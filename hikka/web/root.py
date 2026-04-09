@@ -476,13 +476,12 @@ class Web:
 
         token = utils.rand(8)
 
-        markup = InlineKeyboardMarkup()
-        markup.add(
+        markup = InlineKeyboardMarkup(inline_keyboard=[[
             InlineKeyboardButton(
-                "🔓 Authorize user",
+                text="🔓 Authorize user",
                 callback_data=f"authorize_web_{token}",
             )
-        )
+        ]])
 
         ips = request.headers.get("X-FORWARDED-FOR", None) or request.remote
         cities = []

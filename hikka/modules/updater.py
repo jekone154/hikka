@@ -28,6 +28,8 @@ from ..inline.types import InlineCall
 
 logger = logging.getLogger(__name__)
 
+_RESTART_DELAY_SEC = 60  # задержка перед перезапуском
+
 
 @loader.tds
 class UpdaterMod(loader.Module):
@@ -421,7 +423,7 @@ class UpdaterMod(loader.Module):
             chat_id, message_id = ms.split(":")
             chat_id, message_id = int(chat_id), int(message_id)
             await self._client.edit_message(chat_id, message_id, msg)
-            await asyncio.sleep(60)
+            await asyncio.sleep(_RESTART_DELAY_SEC)
             await self._client.delete_messages(chat_id, message_id)
             return
 

@@ -672,7 +672,7 @@ class CommandDispatcher:
                     if not hasattr(message, placeholder):
                         setattr(message, placeholder, "")
                 except UnicodeDecodeError:
-                    pass
+                    logger.debug("Layout switch decode error", exc_info=True)
 
             # Run watcher via ensure_future so in case user has a lot
             # of watchers with long actions, they can run simultaneously

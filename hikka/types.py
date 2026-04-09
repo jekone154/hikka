@@ -946,7 +946,7 @@ class ConfigValue:
             try:
                 value = ast.literal_eval(value)
             except Exception:
-                pass
+                logger.debug("Module setattr suppressed", exc_info=True)
 
             # Convert value to list if it's tuple just not to mess up
             # with json convertations
