@@ -52,7 +52,7 @@ class Utils(InlineUnit):
         if isinstance(markup_obj, InlineKeyboardMarkup):
             return markup_obj
 
-        markup = InlineKeyboardMarkup()
+        markup = InlineKeyboardMarkup(inline_keyboard=[])
 
         map_ = (
             self._units[markup_obj]["buttons"]
@@ -115,15 +115,13 @@ class Utils(InlineUnit):
                             continue
 
                         line += [
-                            InlineKeyboardButton(text=
-                                button["text"],
+                            InlineKeyboardButton(text=button["text"],
                                 url=button["url"],
                             )
                         ]
                     elif "callback" in button:
                         line += [
-                            InlineKeyboardButton(text=
-                                button["text"],
+                            InlineKeyboardButton(text=button["text"],
                                 callback_data=button["_callback_data"],
                             )
                         ]
@@ -158,23 +156,20 @@ class Utils(InlineUnit):
                             }
                     elif "input" in button:
                         line += [
-                            InlineKeyboardButton(text=
-                                button["text"],
+                            InlineKeyboardButton(text=button["text"],
                                 switch_inline_query_current_chat=button["_switch_query"]
                                 + " ",
                             )
                         ]
                     elif "data" in button:
                         line += [
-                            InlineKeyboardButton(text=
-                                button["text"],
+                            InlineKeyboardButton(text=button["text"],
                                 callback_data=button["data"],
                             )
                         ]
                     elif "switch_inline_query_current_chat" in button:
                         line += [
-                            InlineKeyboardButton(text=
-                                button["text"],
+                            InlineKeyboardButton(text=button["text"],
                                 switch_inline_query_current_chat=button[
                                     "switch_inline_query_current_chat"
                                 ],
@@ -182,8 +177,7 @@ class Utils(InlineUnit):
                         ]
                     elif "switch_inline_query" in button:
                         line += [
-                            InlineKeyboardButton(text=
-                                button["text"],
+                            InlineKeyboardButton(text=button["text"],
                                 switch_inline_query_current_chat=button[
                                     "switch_inline_query"
                                 ],
@@ -408,9 +402,9 @@ class Utils(InlineUnit):
             media = BufferedInputFile(media.read(), filename=media.name if hasattr(media, "name") else "upload.mp4")
 
         if file:
-            media = InputMediaDocument(media, caption=text, parse_mode="HTML")
+            media = InputMediaDocument(media=media, caption=text, parse_mode="HTML")
         elif photo:
-            media = InputMediaPhoto(media, caption=text, parse_mode="HTML")
+            media = InputMediaPhoto(media=media, caption=text, parse_mode="HTML")
         elif audio:
             if isinstance(audio, dict):
                 media = InputMediaAudio(
@@ -428,9 +422,9 @@ class Utils(InlineUnit):
                     parse_mode="HTML",
                 )
         elif video:
-            media = InputMediaVideo(media, caption=text, parse_mode="HTML")
+            media = InputMediaVideo(media=media, caption=text, parse_mode="HTML")
         elif gif:
-            media = InputMediaAnimation(media, caption=text, parse_mode="HTML")
+            media = InputMediaAnimation(media=media, caption=text, parse_mode="HTML")
 
         if media is None and text is None and reply_markup:
             try:
@@ -454,7 +448,7 @@ class Utils(InlineUnit):
         if media is None:
             try:
                 await self.bot.edit_message_text(
-                    text,
+                    text=text,
                     **(
                         {"inline_message_id": inline_message_id}
                         if inline_message_id

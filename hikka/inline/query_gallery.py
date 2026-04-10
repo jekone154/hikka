@@ -138,12 +138,12 @@ class QueryGallery(InlineUnit):
                     description=i["description"],
                     input_message_content=InputTextMessageContent(
                         f"🌘 <b>Opening gallery...</b>\n<i>#id: {id_}</i>",
-                        "HTML",
+                        parse_mode="HTML",
                         disable_web_page_preview=True,
                     ),
-                    thumb_url=photo_url,
-                    thumb_width=128,
-                    thumb_height=128,
+                    thumbnail_url=photo_url,
+                    thumbnail_width=128,
+                    thumbnail_height=128,
                 )
             ]
 

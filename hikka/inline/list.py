@@ -309,7 +309,7 @@ class List(InlineUnit):
                                 title="Hikka",
                                 input_message_content=InputTextMessageContent(
                                     self.sanitise_text(unit["strings"][0]),
-                                    "HTML",
+                                    parse_mode="HTML",
                                     disable_web_page_preview=True,
                                 ),
                                 reply_markup=self._list_markup(inline_query.query),
