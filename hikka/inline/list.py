@@ -308,7 +308,7 @@ class List(InlineUnit):
                                 id=utils.rand(20),
                                 title="Hikka",
                                 input_message_content=InputTextMessageContent(
-                                    self.sanitise_text(unit["strings"][0]),
+                                    message_text=self.sanitise_text(unit["strings"][0]),
                                     parse_mode="HTML",
                                     disable_web_page_preview=True,
                                 ),

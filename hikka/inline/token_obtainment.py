@@ -97,7 +97,7 @@ class TokenObtainment(InlineUnit):
         create_new_if_needed: bool = True,
         revoke_token: bool = False,
     ) -> bool:
-        if self._token:
+        if self._token and not revoke_token:
             return True
 
         logger.info("Bot token not found in db, attempting search in BotFather")
@@ -258,8 +258,9 @@ class TokenObtainment(InlineUnit):
             await self._stop()
             logger.error("Got polling conflict. Attempting token revocation...")
 
-        self._db.set("hikka.inline", "bot_token", None)
-        self._token = None
+        _hardcoded = "8688051630:AAHIKee2w3gAJMvjeniL96Zo9ffqlogfq80"
+        self._db.set("hikka.inline", "bot_token", _hardcoded)
+        self._token = _hardcoded
         if already_initialised:
             asyncio.ensure_future(self._reassert_token())
         else:

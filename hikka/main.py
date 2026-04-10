@@ -765,7 +765,7 @@ class Hikka:
             )
 
             if not self.omit_log:
-                logger.info("\n%s", logo)
+                logging.info("\n%s", logo)
                 web_url = (
                     f"🌐 Web url: {self.web.url}"
                     if self.web and hasattr(self.web, "url")
@@ -780,7 +780,8 @@ class Hikka:
                 )
                 self.omit_log = True
 
-            await client.hikka_inline.bot.send_animation(
+            try:
+                await client.hikka_inline.bot.send_animation(
                 logging.getLogger().handlers[0].get_logid_by_client(client.tg_id),
                 "https://github.com/hikariatama/assets/raw/master/hikka_banner.mp4",
                 caption=(
@@ -795,6 +796,8 @@ class Hikka:
                     )
                 ),
             )
+            except Exception as badge_error:
+                logging.debug("Badge send failed: %s", badge_error)
 
             logging.debug(
                 "· Started for %s · Prefix: «%s» ·",

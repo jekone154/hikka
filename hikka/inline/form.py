@@ -411,7 +411,7 @@ class Form(InlineUnit):
                                     )
                                 ),
                                 input_message_content=InputTextMessageContent(
-                                    (
+                                    message_text=(
                                         "🔄 <b>Transferring value to"
                                         " userbot...</b>\n<i>This message will be"
                                         " deleted automatically</i>"
@@ -553,7 +553,7 @@ class Form(InlineUnit):
                             id=utils.rand(20),
                             title="Hikka",
                             input_message_content=InputTextMessageContent(
-                                form["text"],
+                                message_text=form["text"],
                                 parse_mode="HTML",
                                 disable_web_page_preview=True,
                             ),

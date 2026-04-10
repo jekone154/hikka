@@ -111,7 +111,7 @@ class Events(InlineUnit):
                                 title=self.sanitise_text(res["title"]),
                                 description=self.sanitise_text(res.get("description")),
                                 input_message_content=InputTextMessageContent(
-                                    self.sanitise_text(res["message"]),
+                                    message_text=self.sanitise_text(res["message"]),
                                     parse_mode="HTML",
                                     disable_web_page_preview=True,
                                 ),
@@ -415,7 +415,7 @@ class Events(InlineUnit):
                         title=self.translator.getkey("inline.command").format(name),
                         description=doc,
                         input_message_content=InputTextMessageContent(
-                            (
+                            message_text=(
                                 self.translator.getkey("inline.command_msg").format(
                                     utils.escape_html(name),
                                     utils.escape_html(doc),
@@ -449,7 +449,7 @@ class Events(InlineUnit):
                         title=self.translator.getkey("inline.show_inline_cmds"),
                         description=self.translator.getkey("inline.no_inline_cmds"),
                         input_message_content=InputTextMessageContent(
-                            self.translator.getkey("inline.no_inline_cmds_msg"),
+                            message_text=self.translator.getkey("inline.no_inline_cmds_msg"),
                             parse_mode="HTML",
                             disable_web_page_preview=True,
                         ),
@@ -473,7 +473,7 @@ class Events(InlineUnit):
                         self.translator.getkey("inline.inline_cmds").format(len(_help))
                     ),
                     input_message_content=InputTextMessageContent(
-                        (
+                        message_text=(
                             self.translator.getkey("inline.inline_cmds_msg").format(
                                 "\n".join(map(lambda x: x[1], _help))
                             )
