@@ -8,6 +8,9 @@
 
 import asyncio
 import contextlib
+import contextvars
+import hashlib
+import inspect as _inspect_module
 import copy
 import importlib
 import importlib.machinery
@@ -92,9 +95,74 @@ __all__ = [
     "unrestricted",
     "inline_everyone",
     "loop",
+    "set_session_access_hashes",
+    "get_module_hash",
 ]
 
 logger = logging.getLogger(__name__)
+
+import contextvars
+import hashlib
+import inspect as _inspect_module
+
+_EXTERNAL_ORIGIN_PREFIXES = ("<external", "<file", "<string")
+_external_context = contextvars.ContextVar(
+    "hikka_external_module_origin", default=None
+)
+_MODULE_NAME_BY_HASH: typing.Dict[str, str] = {}
+
+
+def _calc_module_hash(source: str) -> str:
+    return hashlib.sha256(source.encode("utf-8", errors="ignore")).hexdigest()
+
+
+def _make_session_allowlist():
+    data: typing.FrozenSet[str] = frozenset()
+    allowed_callers = frozenset({f"{__package__}.modules.hikka_plugin_security"})
+
+    def _caller_module() -> typing.Optional[str]:
+        for frame_info in _inspect_module.stack():
+            mod = frame_info.frame.f_globals.get("__name__", None)
+            if not mod or mod == __name__:
+                continue
+            return mod
+        return None
+
+    def is_allowed(value: typing.Optional[str]) -> bool:
+        if not value:
+            return False
+        return value in data
+
+    def set_hashes(hashes: typing.Iterable[str]):
+        nonlocal data
+        caller = _caller_module()
+        if caller not in allowed_callers:
+            logger.warning(
+                "Blocked set_session_access_hashes from %s",
+                caller or "<unknown>",
+            )
+            return
+        data = frozenset(hashes)
+
+    return is_allowed, set_hashes
+
+
+_is_session_hash_allowed, _set_session_access_hashes = _make_session_allowlist()
+
+
+def set_session_access_hashes(hashes: typing.Iterable[str]):
+    _set_session_access_hashes(hashes)
+
+
+def get_module_hash(module) -> typing.Optional[str]:
+    mod_hash = getattr(module, "__module_hash__", None)
+    if mod_hash:
+        return mod_hash
+    source = getattr(module, "__source__", None)
+    if source:
+        return _calc_module_hash(source)
+    return None
+
 
 owner = security.owner
 

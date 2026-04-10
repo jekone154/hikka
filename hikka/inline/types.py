@@ -113,8 +113,8 @@ class BotInlineMessage:
         )
 
 
-class InlineCall(CallbackQuery, InlineMessage):
-    """Modified version of classic aiogram `CallbackQuery`"""
+class InlineCall(InlineMessage):
+    """Wrapper around aiogram `CallbackQuery` for inline messages"""
 
     def __init__(
         self,
@@ -122,19 +122,13 @@ class InlineCall(CallbackQuery, InlineMessage):
         inline_manager: "InlineManager",  # type: ignore  # noqa: F821
         unit_id: str,
     ):
-        CallbackQuery.__init__(self)
-
-        for attr in {
-            "id",
-            "from_user",
-            "message",
-            "inline_message_id",
-            "chat_instance",
-            "data",
-            "game_short_name",
-        }:
-            setattr(self, attr, getattr(call, attr, None))
-
+        self.id = call.id
+        self.from_user = call.from_user
+        self.message = getattr(call, "message", None)
+        self.inline_message_id = getattr(call, "inline_message_id", None)
+        self.chat_instance = call.chat_instance
+        self.data = getattr(call, "data", None)
+        self.game_short_name = getattr(call, "game_short_name", None)
         self.original_call = call
 
         InlineMessage.__init__(
@@ -144,9 +138,12 @@ class InlineCall(CallbackQuery, InlineMessage):
             call.inline_message_id,
         )
 
+    async def answer(self, text: str = None, show_alert: bool = False, **kwargs):
+        return await self.original_call.answer(text=text, show_alert=show_alert, **kwargs)
 
-class BotInlineCall(CallbackQuery, BotInlineMessage):
-    """Modified version of classic aiogram `CallbackQuery`"""
+
+class BotInlineCall(BotInlineMessage):
+    """Wrapper around aiogram `CallbackQuery` for bot messages"""
 
     def __init__(
         self,
@@ -154,28 +151,25 @@ class BotInlineCall(CallbackQuery, BotInlineMessage):
         inline_manager: "InlineManager",  # type: ignore  # noqa: F821
         unit_id: str,
     ):
-        CallbackQuery.__init__(self)
-
-        for attr in {
-            "id",
-            "from_user",
-            "message",
-            "chat",
-            "chat_instance",
-            "data",
-            "game_short_name",
-        }:
-            setattr(self, attr, getattr(call, attr, None))
-
+        self.id = call.id
+        self.from_user = call.from_user
+        self.message = getattr(call, "message", None)
+        self.chat = getattr(call.message, "chat", None) if call.message else None
+        self.chat_instance = call.chat_instance
+        self.data = getattr(call, "data", None)
+        self.game_short_name = getattr(call, "game_short_name", None)
         self.original_call = call
 
         BotInlineMessage.__init__(
             self,
             inline_manager,
             unit_id,
-            call.message.chat.id,
-            call.message.message_id,
+            call.message.chat.id if call.message else None,
+            call.message.message_id if call.message else None,
         )
+
+    async def answer(self, text: str = None, show_alert: bool = False, **kwargs):
+        return await self.original_call.answer(text=text, show_alert=show_alert, **kwargs)
 
 
 class InlineUnit:

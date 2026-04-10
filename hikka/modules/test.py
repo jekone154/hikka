@@ -350,7 +350,7 @@ class TestMod(loader.Module):
     @loader.command()
     async def ping(self, message: Message):
         start = time.perf_counter_ns()
-        message = await utils.answer(message, "🌘")
+        message = await utils.answer(message, "🪐")
 
         await utils.answer(
             message,
@@ -369,7 +369,7 @@ class TestMod(loader.Module):
         chat, _ = await utils.asset_channel(
             self._client,
             "hikka-logs",
-            "🌘 Your Hikka logs will appear in this chat",
+            "🪐 Your Hikka logs will appear in this chat",
             silent=True,
             invite_bot=True,
             avatar="https://github.com/hikariatama/assets/raw/master/hikka-logs.png",

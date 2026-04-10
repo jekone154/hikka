@@ -4,16 +4,24 @@
 # You can redistribute it and/or modify it under the terms of the GNU AGPLv3
 # 🔑 https://www.gnu.org/licenses/agpl-3.0.html
 
+# ©️ Codrago, 2024-2030
+# This file is a part of Hikka Userbot
+# 🌐 https://github.com/coddrago/Hikka
+# You can redistribute it and/or modify it under the terms of the GNU AGPLv3
+# 🔑 https://www.gnu.org/licenses/agpl-3.0.html
+
+import asyncio
 import difflib
 import inspect
 import logging
+import re
 
 from hikkatl.extensions.html import CUSTOM_EMOJIS
 from hikkatl.tl.types import Message
+from hikkatl.types import InputMediaWebPage
+
 
 from .. import loader, utils
-from ..compat.dragon import DRAGON_EMOJI
-from ..types import DragonModule
 
 logger = logging.getLogger(__name__)
 
@@ -28,41 +36,65 @@ class Help(loader.Module):
         self.config = loader.ModuleConfig(
             loader.ConfigValue(
                 "core_emoji",
-                "▪️",
+                "<tg-emoji emoji-id=4974681956907221809>▪️</tg-emoji>",
                 lambda: "Core module bullet",
-                validator=loader.validators.Emoji(length=1),
             ),
             loader.ConfigValue(
                 "plain_emoji",
-                "▫️",
+                "<tg-emoji emoji-id=4974508259839836856>▪️</tg-emoji>",
                 lambda: "Plain module bullet",
-                validator=loader.validators.Emoji(length=1),
             ),
             loader.ConfigValue(
                 "empty_emoji",
-                "🙈",
+                "<tg-emoji emoji-id=5100652175172830068>🟠</tg-emoji>",
                 lambda: "Empty modules bullet",
-                validator=loader.validators.Emoji(length=1),
+            ),
+            loader.ConfigValue(
+                "desc_icon",
+                "<tg-emoji emoji-id=5188377234380954537>🪐</tg-emoji>",
+                lambda: "Desc emoji",
+            ),
+            loader.ConfigValue(
+                "command_emoji",
+                "<tg-emoji emoji-id=5197195523794157505>▫️</tg-emoji>",
+                lambda: "Emoji for command",
+            ),
+            loader.ConfigValue(
+                "banner_url",
+                None,
+                lambda: "Banner for .help",
+                validator=loader.validators.RandomLink(),
+            ),
+            loader.ConfigValue(
+                "media_quote",
+                "False",
+                lambda: "quote a banner in help",
+                validator=loader.validators.Boolean(),
+            ),
+            loader.ConfigValue(
+                "invert_media",
+                "False",
+                lambda: "invert banner",
+                validator=loader.validators.Boolean(),
             ),
         )
 
-    @loader.command()
+    @loader.command(
+        ru_doc="[args] | Спрячет ваши модули",
+        ua_doc="[args] | Сховає ваші модулі",
+        de_doc="[args] | Versteckt Ihre Module",
+    )
     async def helphide(self, message: Message):
+        """[args] | hide your modules"""
         if not (modules := utils.get_args(message)):
             await utils.answer(message, self.strings("no_mod"))
             return
 
         currently_hidden = self.get("hide", [])
         hidden, shown = [], []
-        for module in filter(
-            lambda module: self.lookup(module, include_dragon=True), modules
-        ):
-            module = self.lookup(module, include_dragon=True)
-            module = (
-                module.name
-                if isinstance(module, DragonModule)
-                else module.__class__.__name__
-            )
+        for module in filter(lambda module: self.lookup(module), modules):
+            module = self.lookup(module)
+            module = module.__class__.__name__
             if module in currently_hidden:
                 currently_hidden.remove(module)
                 shown += [module]
@@ -95,7 +127,7 @@ class Help(loader.Module):
 
     async def modhelp(self, message: Message, args: str):
         exact = True
-        if not (module := self.lookup(args, include_dragon=True)):
+        if not (module := self.lookup(args)):
             if method := self.allmodules.dispatch(
                 args.lower().strip(self.get_prefix())
             )[1]:
@@ -124,53 +156,44 @@ class Help(loader.Module):
 
                 exact = False
 
-        is_dragon = isinstance(module, DragonModule)
-
         try:
             name = module.strings("name")
         except (KeyError, AttributeError):
             name = getattr(module, "name", "ERROR")
 
         _name = (
-            "{} (v{}.{}.{})".format(
-                utils.escape_html(name),
-                module.__version__[0],
-                module.__version__[1],
-                module.__version__[2],
+            "{} (v{})".format(
+                utils.escape_html(name), ".".join(map(str, module.__version__))
             )
             if hasattr(module, "__version__")
             else utils.escape_html(name)
         )
 
         reply = "{} <b>{}</b>:".format(
-            (
-                DRAGON_EMOJI
-                if is_dragon
-                else "<emoji document_id=5188377234380954537>🌘</emoji>"
-            ),
-            _name,
+            "<tg-emoji emoji-id=5134452506935427991>🪐</tg-emoji>", _name, ""
         )
+        inline_cmd = ""
+        cmds = ""
         if module.__doc__:
             reply += (
-                "<i>\n<emoji document_id=5787544344906959608>ℹ️</emoji> "
+                "\n<i><tg-emoji emoji-id=5879813604068298387>ℹ️</tg-emoji> "
                 + utils.escape_html(inspect.getdoc(module))
                 + "\n</i>"
             )
 
-        commands = (
-            module.commands
-            if is_dragon
-            else {
-                name: func
-                for name, func in module.commands.items()
-                if await self.allmodules.check_security(message, func)
-            }
-        )
+        if isinstance(self.lookup(args), loader.Library):
+            return await utils.answer(message, self.strings["help_lib"].format(name))
 
-        if hasattr(module, "inline_handlers") and not is_dragon:
+        commands = {
+            name: func
+            for name, func in module.commands.items()
+            if await self.allmodules.check_security(message, func)
+        }
+
+        if hasattr(module, "inline_handlers"):
             for name, fun in module.inline_handlers.items():
-                reply += (
-                    "\n<emoji document_id=5372981976804366741>🤖</emoji>"
+                inline_cmd += (
+                    "\n<tg-emoji emoji-id=5372981976804366741>🤖</tg-emoji>"
                     " <code>{}</code> {}".format(
                         f"@{self.inline.bot_username} {name}",
                         (
@@ -181,19 +204,18 @@ class Help(loader.Module):
                     )
                 )
 
+        lines = []
         for name, fun in commands.items():
-            reply += (
-                "\n<emoji document_id=4971987363145188045>▫️</emoji>"
+            lines.append(
+                f'{self.config["command_emoji"]}'
                 " <code>{}{}</code>{} {}".format(
-                    utils.escape_html(self.get_prefix("dragon" if is_dragon else None)),
+                    utils.escape_html(self.get_prefix()),
                     name,
                     (
                         " ({})".format(
                             ", ".join(
                                 "<code>{}{}</code>".format(
-                                    utils.escape_html(
-                                        self.get_prefix("dragon" if is_dragon else None)
-                                    ),
+                                    utils.escape_html(self.get_prefix()),
                                     alias,
                                 )
                                 for alias in self.find_aliases(name)
@@ -203,34 +225,71 @@ class Help(loader.Module):
                         else ""
                     ),
                     (
-                        utils.escape_html(fun)
-                        if is_dragon
-                        else (
-                            utils.escape_html(inspect.getdoc(fun))
-                            if fun.__doc__
-                            else self.strings("undoc")
-                        )
+                        utils.escape_html(inspect.getdoc(fun))
+                        if fun.__doc__
+                        else self.strings("undoc")
                     ),
                 )
             )
-
+        cmds = "\n".join(lines)
+        developer = re.search(
+            r"# ?meta developer: ?(.+)", getattr(module, "__source__", None)
+        )
+        dev_text = developer.group(1) if developer else None
+        placeholders = "\n".join(
+            utils.help_placeholders(module.__class__.__name__, self)
+        )
         await utils.answer(
             message,
-            reply
+            f"{reply}<blockquote expandable>{cmds}{inline_cmd}</blockquote>\n<blockquote expandable>"
+            + (f"{placeholders}</blockquote>" if placeholders else "")
+            + (f"\n\n{self.strings('developer')}".format(dev_text) if dev_text else "")
             + (f"\n\n{self.strings('not_exact')}" if not exact else "")
             + (
-                f"\n\n{self.strings('core_notice')}"
+                f"\n{self.strings('core_notice')}"
                 if module.__origin__.startswith("<core")
                 else ""
             ),
         )
 
-    @loader.command()
+    @loader.command(
+        ru_doc="[args] | Помощь с вашими модулями!",
+        ua_doc="[args] | допоможіть з вашими модулями!",
+        de_doc="[args] | Hilfe mit deinen Modulen!",
+    )
     async def help(self, message: Message):
+        """[args] | help with your modules!"""
+
         args = utils.get_args_raw(message)
+
+        banner = str(self.config["banner_url"])
+
+        if self.config["banner_url"] and self.config["media_quote"] is True:
+            banner = InputMediaWebPage(str(self.config["banner_url"]))
+
+        if (
+            self.config["banner_url"] and self.client.hikka_me.premium is False
+        ):  # bcs non-premium users can add in caption only 1024 symbols
+            banner = InputMediaWebPage(str(self.config["banner_url"]))
+
+        if not self.config["banner_url"]:
+            banner = None
+
         force = False
         if "-f" in args:
             args = args.replace(" -f", "").replace("-f", "")
+            force = True
+
+        only_core = False
+        if "-c" in args:
+            args = args.replace(" -c", "").replace("-c", "")
+            only_core = True
+            force = True
+
+        only_loaded = False
+        if "-l" in args:
+            args = args.replace(" -l", "").replace("-l", "")
+            only_loaded = True
             force = True
 
         if args:
@@ -240,16 +299,13 @@ class Help(loader.Module):
         hidden = self.get("hide", [])
 
         reply = self.strings("all_header").format(
-            len(self.allmodules.modules) + len(self.allmodules.dragon_modules),
+            len(self.allmodules.modules),
             (
                 0
                 if force
                 else sum(
                     module.__class__.__name__ in hidden
                     for module in self.allmodules.modules
-                )
-                + sum(
-                    module.name in hidden for module in self.allmodules.dragon_modules
                 )
             ),
         )
@@ -258,24 +314,6 @@ class Help(loader.Module):
         plain_ = []
         core_ = []
         no_commands_ = []
-        dragon_ = []
-
-        for mod in self.allmodules.dragon_modules:
-            if mod.name in self.get("hide", []) and not force:
-                continue
-
-            tmp = "\n{} <code>{}</code>".format(DRAGON_EMOJI, mod.name)
-            first = True
-
-            for cmd in mod.commands:
-                cmd = cmd.split()[0]
-                if first:
-                    tmp += f": ( {cmd}"
-                    first = False
-                else:
-                    tmp += f" | {cmd}"
-
-            dragon_ += [tmp + " )"]
 
         for mod in self.allmodules.modules:
             if not hasattr(mod, "commands"):
@@ -303,6 +341,7 @@ class Help(loader.Module):
                 continue
 
             core = mod.__origin__.startswith("<core")
+
             tmp += "\n{} <code>{}</code>".format(
                 self.config["core_emoji"] if core else self.config["plain_emoji"], name
             )
@@ -321,15 +360,30 @@ class Help(loader.Module):
                 else:
                     tmp += f" | {cmd}"
 
-            icommands = [
-                name
-                for name, func in mod.inline_handlers.items()
-                if await self.inline.check_inline_security(
-                    func=func,
-                    user=message.sender_id,
+            icommands = []
+
+            if force:
+                icommands.extend([*mod.inline_handlers.keys()])
+            else:
+                results = await asyncio.gather(
+                    *(
+                        self.inline.check_inline_security(
+                            func=func,
+                            user=(
+                                message.sender_id
+                                if not message.out
+                                else self._client.tg_id
+                            ),
+                        )
+                        for func in mod.inline_handlers.values()
+                    )
                 )
-                or force
-            ]
+
+                icommands = [
+                    name
+                    for name, passed in zip(mod.inline_handlers.keys(), results)
+                    if passed is True
+                ]
 
             for cmd in icommands:
                 if first:
@@ -351,36 +405,76 @@ class Help(loader.Module):
                 )
                 shown_warn = True
 
-        plain_.sort(key=lambda x: x.split()[1])
-        core_.sort(key=lambda x: x.split()[1])
-        no_commands_.sort(key=lambda x: x.split()[1])
-        dragon_.sort()
+        plain_.sort(key=str.lower)
+        core_.sort(key=str.lower)
+        no_commands_.sort(key=str.lower)
 
-        await utils.answer(
-            message,
-            "{}\n{}{}".format(
-                reply,
-                "".join(core_ + plain_ + dragon_ + (no_commands_ if force else [])),
-                (
-                    ""
-                    if self.lookup("Loader").fully_loaded
-                    else f"\n\n{self.strings('partial_load')}"
-                ),
-            ),
-        )
-
-    @loader.command()
-    async def support(self, message):
-        if message.out:
-            await self.request_join("@hikka_talks", self.strings("request_join"))
-
-        await utils.answer(
-            message,
-            self.strings("support").format(
-                (
-                    utils.get_platform_emoji()
-                    if self._client.hikka_me.premium and CUSTOM_EMOJIS
-                    else "🌘"
+        match True:
+            case _ if only_core:
+                await utils.answer(
+                    message,
+                    (
+                        self.config["desc_icon"]
+                        + " {}\n <blockquote expandable>{}</blockquote><blockquote expandable>{}</blockquote>"
+                    ).format(
+                        reply,
+                        "".join(core_),
+                        (
+                            ""
+                            if self.lookup("Loader").fully_loaded
+                            else f"\n\n{self.strings('partial_load')}"
+                        ),
+                    ),
+                    file=banner,
+                    invert_media=self.config["invert_media"],
                 )
-            ),
+            case _ if only_loaded:
+                await utils.answer(
+                    message,
+                    (
+                        self.config["desc_icon"]
+                        + " {}\n <blockquote expandable>{}</blockquote><blockquote expandable>{}</blockquote>"
+                    ).format(
+                        reply,
+                        "".join(plain_ + (no_commands_ if force else [])),
+                        (
+                            ""
+                            if self.lookup("Loader").fully_loaded
+                            else f"\n\n{self.strings('partial_load')}"
+                        ),
+                    ),
+                    file=banner,
+                    invert_media=self.config["invert_media"],
+                )
+            case _:
+                await utils.answer(
+                    message,
+                    (
+                        self.config["desc_icon"]
+                        + " {}\n <blockquote expandable>{}</blockquote><blockquote expandable>{}</blockquote><blockquote expandable>{}</blockquote>"
+                    ).format(
+                        reply,
+                        "".join(core_),
+                        "".join(plain_ + (no_commands_ if force else [])),
+                        (
+                            ""
+                            if self.lookup("Loader").fully_loaded
+                            else f"\n\n{self.strings('partial_load')}"
+                        ),
+                    ),
+                    file=banner,
+                    invert_media=self.config["invert_media"],
+                )
+
+    @loader.command(
+        ru_doc="| Ссылка на чат помощи",
+        ua_doc="| посилання для чату служби підтримки",
+        de_doc="| Link zum Support-Chat",
+    )
+    async def support(self, message):
+        """| link for support chat"""
+
+        await utils.answer(
+            message,
+            self.strings("offchats"),
         )
