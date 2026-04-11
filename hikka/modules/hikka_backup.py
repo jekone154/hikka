@@ -170,6 +170,7 @@ class HikkaBackupMod(loader.Module):
             )
             return
 
+        # Конвертация старых бэкапов из устаревшего формата
         if re.search(r'"(heroku\.)(\S+\")', file.decode()):
             await utils.answer(
                 message,

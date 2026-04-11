@@ -299,12 +299,12 @@ class UpdaterMod(loader.Module):
         try:
             folder_id = (
                 max(
-                    folders,
+                    (f for f in folders if hasattr(f, "id")),
                     key=lambda x: x.id,
                 ).id
                 + 1
             )
-        except ValueError:
+        except (ValueError, TypeError):
             folder_id = 2
 
         try:

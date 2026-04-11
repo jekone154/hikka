@@ -78,10 +78,7 @@ class InlineManager(
         self._markup_ttl = 60 * 60 * 24
         self.init_complete = False
 
-        # Hardcoded bot token
-        _hardcoded_token = "8688051630:AAHIKee2w3gAJMvjeniL96Zo9ffqlogfq80"
-        self._token = _hardcoded_token
-        db.set("hikka.inline", "bot_token", _hardcoded_token)
+        self._token = db.get("hikka.inline", "bot_token", False)
 
         self._me: int = None
         self._name: str = None
