@@ -47,8 +47,8 @@ def deps():
     )
 
 
-if sys.version_info < (3, 10, 0):
-    print("🚫 Error: you must use at least Python version 3.10.0")
+if sys.version_info < (3, 8, 0):
+    print("🚫 Error: you must use at least Python version 3.8.0")
 elif __package__ != "hikka":  # In case they did python __main__.py
     print("🚫 Error: you cannot run this as a script; you must execute as a package")
 else:

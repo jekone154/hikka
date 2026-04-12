@@ -175,7 +175,8 @@ class APIRatelimiterMod(loader.Module):
                             ),
                         )
 
-                        await asyncio.sleep(int(self.config["local_floodwait"]))
+                        # It is intented to use time.sleep instead of asyncio.sleep
+                        time.sleep(int(self.config["local_floodwait"]))
                         self._lock = False
 
             return await old_call(sender, request, ordered, flood_sleep_threshold)

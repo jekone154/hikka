@@ -111,13 +111,13 @@ class Events(InlineUnit):
                                 title=self.sanitise_text(res["title"]),
                                 description=self.sanitise_text(res.get("description")),
                                 input_message_content=InputTextMessageContent(
-                                    message_text=self.sanitise_text(res["message"]),
-                                    parse_mode="HTML",
+                                    self.sanitise_text(res["message"]),
+                                    "HTML",
                                     disable_web_page_preview=True,
                                 ),
-                                thumbnail_url=res.get("thumb"),
-                                thumbnail_width=128,
-                                thumbnail_height=128,
+                                thumb_url=res.get("thumb"),
+                                thumb_width=128,
+                                thumb_height=128,
                                 reply_markup=self.generate_markup(
                                     res.get("reply_markup")
                                 ),
@@ -132,7 +132,7 @@ class Events(InlineUnit):
                                     ),
                                     caption=self.sanitise_text(res.get("caption")),
                                     parse_mode="HTML",
-                                    thumbnail_url=res.get("thumb", res["photo"]),
+                                    thumb_url=res.get("thumb", res["photo"]),
                                     photo_url=res["photo"],
                                     reply_markup=self.generate_markup(
                                         res.get("reply_markup")
@@ -145,7 +145,7 @@ class Events(InlineUnit):
                                         title=self.sanitise_text(res.get("title")),
                                         caption=self.sanitise_text(res.get("caption")),
                                         parse_mode="HTML",
-                                        thumbnail_url=res.get("thumb", res["gif"]),
+                                        thumb_url=res.get("thumb", res["gif"]),
                                         gif_url=res["gif"],
                                         reply_markup=self.generate_markup(
                                             res.get("reply_markup")
@@ -163,7 +163,7 @@ class Events(InlineUnit):
                                                 res.get("caption")
                                             ),
                                             parse_mode="HTML",
-                                            thumbnail_url=res.get("thumb", res["video"]),
+                                            thumb_url=res.get("thumb", res["video"]),
                                             video_url=res["video"],
                                             mime_type="video/mp4",
                                             reply_markup=self.generate_markup(
@@ -181,7 +181,7 @@ class Events(InlineUnit):
                                                 res.get("caption")
                                             ),
                                             parse_mode="HTML",
-                                            thumbnail_url=res.get("thumb", res["file"]),
+                                            thumb_url=res.get("thumb", res["file"]),
                                             document_url=res["file"],
                                             mime_type=res["mime_type"],
                                             reply_markup=self.generate_markup(
@@ -415,18 +415,18 @@ class Events(InlineUnit):
                         title=self.translator.getkey("inline.command").format(name),
                         description=doc,
                         input_message_content=InputTextMessageContent(
-                            message_text=(
+                            (
                                 self.translator.getkey("inline.command_msg").format(
                                     utils.escape_html(name),
                                     utils.escape_html(doc),
                                 )
                             ),
-                            parse_mode="HTML",
+                            "HTML",
                             disable_web_page_preview=True,
                         ),
-                        thumbnail_url=thumb,
-                        thumbnail_width=128,
-                        thumbnail_height=128,
+                        thumb_url=thumb,
+                        thumb_width=128,
+                        thumb_height=128,
                         reply_markup=self.generate_markup(
                             {
                                 "text": self.translator.getkey("inline.run_command"),
@@ -449,15 +449,15 @@ class Events(InlineUnit):
                         title=self.translator.getkey("inline.show_inline_cmds"),
                         description=self.translator.getkey("inline.no_inline_cmds"),
                         input_message_content=InputTextMessageContent(
-                            message_text=self.translator.getkey("inline.no_inline_cmds_msg"),
-                            parse_mode="HTML",
+                            self.translator.getkey("inline.no_inline_cmds_msg"),
+                            "HTML",
                             disable_web_page_preview=True,
                         ),
-                        thumbnail_url=(
+                        thumb_url=(
                             "https://img.icons8.com/fluency/50/000000/info-squared.png"
                         ),
-                        thumbnail_width=128,
-                        thumbnail_height=128,
+                        thumb_width=128,
+                        thumb_height=128,
                     )
                 ],
                 cache_time=0,
@@ -473,19 +473,19 @@ class Events(InlineUnit):
                         self.translator.getkey("inline.inline_cmds").format(len(_help))
                     ),
                     input_message_content=InputTextMessageContent(
-                        message_text=(
+                        (
                             self.translator.getkey("inline.inline_cmds_msg").format(
                                 "\n".join(map(lambda x: x[1], _help))
                             )
                         ),
-                        parse_mode="HTML",
+                        "HTML",
                         disable_web_page_preview=True,
                     ),
-                    thumbnail_url=(
+                    thumb_url=(
                         "https://img.icons8.com/fluency/50/000000/info-squared.png"
                     ),
-                    thumbnail_width=128,
-                    thumbnail_height=128,
+                    thumb_width=128,
+                    thumb_height=128,
                 )
             ]
             + [i[0] for i in _help],

@@ -8,7 +8,6 @@ import asyncio
 import atexit
 import logging
 import os
-import subprocess
 import random
 import signal
 import sys
@@ -52,7 +51,7 @@ def restart():
     print("🔄 Restarting...")
 
     if "LAVHOST" in os.environ:
-        subprocess.run(["lavhost", "restart"], check=False)
+        os.system("lavhost restart")
         return
 
     os.environ["HIKKA_DO_NOT_RESTART"] = "1"

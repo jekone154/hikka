@@ -1,4 +1,3 @@
-import asyncio
 # ©️ Dan Gazizullin, 2021-2023
 # This file is a part of Hikka Userbot
 # 🌐 https://github.com/hikariatama/Hikka
@@ -343,7 +342,7 @@ class TestMod(loader.Module):
                 message,
                 self.strings("suspended").format(time_sleep),
             )
-            await asyncio.sleep(time_sleep)
+            time.sleep(time_sleep)
         except ValueError:
             await utils.answer(message, self.strings("suspend_invalid_time"))
 

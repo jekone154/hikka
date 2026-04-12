@@ -17,8 +17,6 @@ from .types import InlineUnit
 
 logger = logging.getLogger(__name__)
 
-_HARDCODED_TOKEN = "8688051630:AAHIKee2w3gAJMvjeniL96Zo9ffqlogfq80"
-
 
 class TokenObtainment(InlineUnit):
     async def _create_bot(self):
@@ -35,6 +33,7 @@ class TokenObtainment(InlineUnit):
                 return False
 
             await fw_protect()
+
             await m.delete()
             await r.delete()
 
@@ -87,6 +86,7 @@ class TokenObtainment(InlineUnit):
                 logger.debug("<< %s", r.raw_text)
 
             await fw_protect()
+
             await m.delete()
             await r.delete()
 
@@ -97,8 +97,7 @@ class TokenObtainment(InlineUnit):
         create_new_if_needed: bool = True,
         revoke_token: bool = False,
     ) -> bool:
-        # Если токен уже есть и не нужно перевыпускать - сразу возвращаем
-        if self._token and not revoke_token:
+        if self._token:
             return True
 
         logger.info("Bot token not found in db, attempting search in BotFather")
@@ -126,11 +125,13 @@ class TokenObtainment(InlineUnit):
             logger.debug("<< %s", r.raw_text)
 
             await fw_protect()
+
             await m.delete()
             await r.delete()
 
             if not hasattr(r, "reply_markup") or not hasattr(r.reply_markup, "rows"):
                 await conv.cancel_all()
+
                 return await self._create_bot() if create_new_if_needed else False
 
             for row in r.reply_markup.rows:
@@ -139,7 +140,9 @@ class TokenObtainment(InlineUnit):
                         "hikka.inline", "custom_bot", False
                     ) and self._db.get(
                         "hikka.inline", "custom_bot", False
-                    ) != button.text.strip("@"):
+                    ) != button.text.strip(
+                        "@"
+                    ):
                         continue
 
                     if not self._db.get(
@@ -150,6 +153,7 @@ class TokenObtainment(InlineUnit):
                         continue
 
                     await fw_protect()
+
                     m = await conv.send_message(button.text)
                     r = await conv.get_response()
 
@@ -162,6 +166,7 @@ class TokenObtainment(InlineUnit):
                         await r.delete()
 
                         await fw_protect()
+
                         m = await conv.send_message("/revoke")
                         r = await conv.get_response()
 
@@ -169,10 +174,12 @@ class TokenObtainment(InlineUnit):
                         logger.debug("<< %s", r.raw_text)
 
                         await fw_protect()
+
                         await m.delete()
                         await r.delete()
 
                         await fw_protect()
+
                         m = await conv.send_message(button.text)
                         r = await conv.get_response()
 
@@ -180,10 +187,12 @@ class TokenObtainment(InlineUnit):
                         logger.debug("<< %s", r.raw_text)
 
                     token = r.raw_text.splitlines()[1]
+
                     self._db.set("hikka.inline", "bot_token", token)
                     self._token = token
 
                     await fw_protect()
+
                     await m.delete()
                     await r.delete()
 
@@ -205,6 +214,7 @@ class TokenObtainment(InlineUnit):
                         logger.debug("<< %s", r.raw_text)
 
                         await fw_protect()
+
                         await m.delete()
                         await r.delete()
 
@@ -228,6 +238,7 @@ class TokenObtainment(InlineUnit):
                         logger.debug("<< %s", r.raw_text)
 
                     await fw_protect()
+
                     await m.delete()
                     await r.delete()
 
@@ -249,7 +260,6 @@ class TokenObtainment(InlineUnit):
 
         self._db.set("hikka.inline", "bot_token", None)
         self._token = None
-
         if already_initialised:
             asyncio.ensure_future(self._reassert_token())
         else:

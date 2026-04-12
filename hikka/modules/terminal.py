@@ -378,7 +378,6 @@ class TerminalMod(loader.Module):
                 sproc.stderr,
                 self.config["FLOOD_WAIT_PROTECT"],
             ),
-            return_exceptions=True,
         )
 
         await editor.cmd_ended(await sproc.wait())

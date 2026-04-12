@@ -4,20 +4,13 @@
 # You can redistribute it and/or modify it under the terms of the GNU AGPLv3
 # 🔑 https://www.gnu.org/licenses/agpl-3.0.html
 
-# ©️ Codrago, 2024-2030
-# This file is a part of Hikka Userbot
-# 🌐 https://github.com/coddrago/Hikka
-# You can redistribute it and/or modify it under the terms of the GNU AGPLv3
-# 🔑 https://www.gnu.org/licenses/agpl-3.0.html
-
 import contextlib
 import datetime
 import time
 import typing
 
-from hikkatl.custom import Message
 from hikkatl.hints import EntityLike
-from hikkatl.tl.types import PeerUser, User
+from hikkatl.tl.types import Message, PeerUser, User
 from hikkatl.utils import get_display_name
 
 from .. import loader, main, security, utils
@@ -130,19 +123,6 @@ class HikkaSecurityMod(loader.Module):
         await call.edit(
             self.strings("global"),
             reply_markup=self._build_markup_global(is_inline),
-        )
-
-    async def inline__switch_perm_inline_query(self, call: InlineCall):
-        query = self._db.get(security.__name__, "allow_inline_query", False)
-        self._db.set(security.__name__, "allow_inline_query", not query)
-
-        await call.answer("Inline query permission set!")
-        await call.edit(
-            self.strings("querysec_info"),
-            reply_markup={
-                "text": "❌" if query else "✅",
-                "callback": self.inline__switch_perm_inline_query,
-            },
         )
 
     def _build_markup(
@@ -259,10 +239,6 @@ class HikkaSecurityMod(loader.Module):
             await utils.answer(message, self.strings("no_args"))
             return
 
-        if not all([i.isalnum() for i in args]):
-            await utils.answer(message, self.strings("invalid_name"))
-            return
-
         if args in self._sgroups:
             await utils.answer(
                 message, self.strings("sgroup_already_exists").format(args)
@@ -326,7 +302,7 @@ class HikkaSecurityMod(loader.Module):
                 (
                     self.strings("permissions_list").format(
                         "\n".join(
-                            "<tg-emoji emoji-id=4974307891025543730>▫️</tg-emoji>"
+                            "<emoji document_id=4974307891025543730>▫️</emoji>"
                             " <b>{}</b> <code>{}</code> <b>{}</b>".format(
                                 self.strings(rule["rule_type"]),
                                 rule["rule"],
@@ -355,7 +331,7 @@ class HikkaSecurityMod(loader.Module):
             await utils.answer(message, self.strings("no_args"))
             return
 
-        if not self._sgroups.get(args):
+        if self._sgroups.get(args):
             await utils.answer(message, self.strings("sgroup_not_found").format(args))
             return
 
@@ -513,21 +489,8 @@ class HikkaSecurityMod(loader.Module):
             ttl=5 * 60,
         )
 
-    @loader.command()
-    async def querysec(self, message: Message):
-        query = self._db.get(security.__name__, "allow_inline_query", False)
-        await self.inline.form(
-            self.strings("querysec_info"),
-            reply_markup={
-                "text": "✅" if query else "❌",
-                "callback": self.inline__switch_perm_inline_query,
-            },
-            message=message,
-            ttl=5 * 60,
-        )
-
     async def _resolve_user(self, message: Message):
-        if not (args := utils.get_args_raw(message).replace("@", "")) and not (
+        if not (args := utils.get_args_raw(message)) and not (
             reply := await message.get_reply_message()
         ):
             await utils.answer(message, self.strings("no_user"))
@@ -658,7 +621,6 @@ class HikkaSecurityMod(loader.Module):
     @loader.command()
     async def ownerlist(self, message: Message):
         _resolved_users = []
-        _and_prefixes = []
         for user in set(self._client.dispatcher.security.owner + [self.tg_id]):
             with contextlib.suppress(Exception):
                 _resolved_users += [await self._client.get_entity(user, exp=0)]
@@ -666,10 +628,6 @@ class HikkaSecurityMod(loader.Module):
         if not _resolved_users:
             await utils.answer(message, self.strings("no_owner"))
             return
-
-        prefixes = self._db.get(main.__name__, f"command_prefixes", {})
-        for user in _resolved_users:
-            _and_prefixes += [prefixes.get(str(user.id), None)]
 
         await utils.answer(
             message,
@@ -679,33 +637,31 @@ class HikkaSecurityMod(loader.Module):
                         self.strings("li").format(
                             i.id, utils.escape_html(get_display_name(i))
                         )
-                        + (f" ({p})" if p else "")
-                        for i, p in zip(_resolved_users, _and_prefixes)
+                        for i in _resolved_users
                     ]
                 )
             ),
         )
 
     def _lookup(self, needle: str) -> str:
-        # TODO: to not removing ALL prefixes from needle using message author's id
-        command = needle
-        for prefix in self.get_prefixes():
-            command = command.lower().removeprefix(prefix)
-
         return (
             (
                 []
-                if needle.lower().startswith(tuple(self.get_prefixes()))
+                if needle.lower().startswith(self.get_prefix())
                 else (
                     [f"module/{self.lookup(needle).__class__.__name__}"]
                     if self.lookup(needle)
                     else []
                 )
             )
-            + ([f"command/{command}"] if command in self.allmodules.commands else [])
             + (
-                [f"inline/{needle.lower().removeprefix('@')}"]
-                if needle.lower().removeprefix("@") in self.allmodules.inline_handlers
+                [f"command/{needle.lower().strip(self.get_prefix())}"]
+                if needle.lower().strip(self.get_prefix()) in self.allmodules.commands
+                else []
+            )
+            + (
+                [f"inline/{needle.lower().strip('@')}"]
+                if needle.lower().strip("@") in self.allmodules.inline_handlers
                 else []
             )
         )
@@ -983,34 +939,30 @@ class HikkaSecurityMod(loader.Module):
         await self._confirm(message, "sgroup", target, possible_rules[0], duration)
 
     async def _tsec_user(self, message: Message, args: list):
+        if len(args) == 1 and not message.is_private and not message.is_reply:
+            await utils.answer(message, self.strings("no_target"))
+            return
 
-        match args:
-            case [single]:
-                if not message.is_private and not message.is_reply:
-                    await utils.answer(message, self.strings("no_target"))
-                    return
-                await utils.answer(message, self.strings("no_rule"))
-                return
-            case _ if len(args) >= 2:
-                try:
-                    if not args[1].isdigit() and not args[1].startswith("@"):
-                        raise ValueError
+        if len(args) >= 2:
+            try:
+                if not args[1].isdigit() and not args[1].startswith("@"):
+                    raise ValueError
 
+                target = await self._client.get_entity(
+                    int(args[1]) if args[1].isdigit() else args[1],
+                    exp=0,
+                )
+            except (ValueError, TypeError):
+                if message.is_private:
+                    target = await self._client.get_entity(message.peer_id, exp=0)
+                elif message.is_reply:
                     target = await self._client.get_entity(
-                        int(args[1]) if args[1].isdigit() else args[1],
+                        (await message.get_reply_message()).sender_id,
                         exp=0,
                     )
-                except (ValueError, TypeError):
-                    if message.is_private:
-                        target = await self._client.get_entity(message.peer_id, exp=0)
-                    elif message.is_reply:
-                        target = await self._client.get_entity(
-                            (await message.get_reply_message()).sender_id,
-                            exp=0,
-                        )
-                    else:
-                        await utils.answer(message, self.strings("no_target"))
-                        return
+                else:
+                    await utils.answer(message, self.strings("no_target"))
+                    return
 
         if target.id in self._client.dispatcher.security.owner:
             await utils.answer(message, self.strings("owner_target"))
@@ -1057,17 +1009,23 @@ class HikkaSecurityMod(loader.Module):
 
     @loader.command()
     async def tsecrm(self, message: Message):
+        if (
+            not self._client.dispatcher.security.tsec_chat
+            and not self._client.dispatcher.security.tsec_user
+        ):
+            await utils.answer(message, self.strings("no_rules"))
+            return
 
-        if not (args := utils.get_args(message)) or args[0] not in [
+        if not (args := utils.get_args(message)) or args[0] not in {
             "user",
             "chat",
             "sgroup",
-        ]:
+        }:
             await utils.answer(message, self.strings("no_target"))
             return
 
         if args[0] == "user":
-            if not message.is_private and not message.is_reply and len(args) < 3:
+            if not message.is_private and not message.is_reply:
                 await utils.answer(message, self.strings("no_target"))
                 return
 
@@ -1078,18 +1036,11 @@ class HikkaSecurityMod(loader.Module):
                     (await message.get_reply_message()).sender_id,
                     exp=0,
                 )
-            elif len(args) == 3:
-                _ent = int(args[1]) if args[1].isdigit() else args[1]
-                try:
-                    target = await self._client.get_entity(_ent, exp=0)
-                except ValueError:
-                    await utils.answer(message, self.strings("no_target"))
-                    return
 
             if not self._client.dispatcher.security.remove_rule(
                 "user",
                 target.id,
-                args[-1],
+                args[1],
             ):
                 await utils.answer(message, self.strings("no_rules"))
                 return
@@ -1099,7 +1050,7 @@ class HikkaSecurityMod(loader.Module):
                 self.strings("rule_removed").format(
                     utils.get_entity_url(target),
                     utils.escape_html(get_display_name(target)),
-                    utils.escape_html(args[-1]),
+                    utils.escape_html(args[1]),
                 ),
             )
             return
@@ -1110,11 +1061,10 @@ class HikkaSecurityMod(loader.Module):
                 return
 
             group = self._sgroups[args[1]]
-            permissions = group.permissions
             _any = False
-            for rule in permissions:
+            for rule in group.permissions:
                 if rule["rule"] == args[2]:
-                    permissions.remove(rule)
+                    group.permissions.remove(rule)
                     _any = True
 
             if not _any:
@@ -1154,6 +1104,12 @@ class HikkaSecurityMod(loader.Module):
 
     @loader.command()
     async def tsecclr(self, message: Message):
+        if (
+            not self._client.dispatcher.security.tsec_chat
+            and not self._client.dispatcher.security.tsec_user
+        ):
+            await utils.answer(message, self.strings("no_rules"))
+            return
 
         if (
             not (args := utils.get_args(message))
@@ -1164,7 +1120,7 @@ class HikkaSecurityMod(loader.Module):
             return
 
         if args == "user":
-            if not message.is_private and not message.is_reply and len(args) < 2:
+            if not message.is_private and not message.is_reply:
                 await utils.answer(message, self.strings("no_target"))
                 return
 
@@ -1175,13 +1131,6 @@ class HikkaSecurityMod(loader.Module):
                     (await message.get_reply_message()).sender_id,
                     exp=0,
                 )
-            elif len(args) == 2:
-                _ent = int(args[1]) if args[1].isdigit() else args[1]
-                try:
-                    target = await self._client.get_entity(_ent, exp=0)
-                except ValueError:
-                    await utils.answer(message, self.strings("no_target"))
-                    return
 
             if not self._client.dispatcher.security.remove_rules("user", target.id):
                 await utils.answer(message, self.strings("no_rules"))
@@ -1236,13 +1185,19 @@ class HikkaSecurityMod(loader.Module):
     @loader.command()
     async def tsec(self, message: Message):
         if not (args := utils.get_args(message)):
+            if (
+                not self._client.dispatcher.security.tsec_chat
+                and not self._client.dispatcher.security.tsec_user
+            ):
+                await utils.answer(message, self.strings("no_rules"))
+                return
 
             await utils.answer(
                 message,
                 self.strings("rules").format(
                     "\n".join(
                         [
-                            "<tg-emoji emoji-id=6037355667365300960>👥</tg-emoji> <b><a"
+                            "<emoji document_id=6037355667365300960>👥</emoji> <b><a"
                             " href='{}'>{}</a> {} {} {}</b> <code>{}</code>".format(
                                 rule["entity_url"],
                                 utils.escape_html(rule["entity_name"]),
@@ -1254,7 +1209,7 @@ class HikkaSecurityMod(loader.Module):
                             for rule in self._client.dispatcher.security.tsec_chat
                         ]
                         + [
-                            "<tg-emoji emoji-id=6037122016849432064>👤</tg-emoji> <b><a"
+                            "<emoji document_id=6037122016849432064>👤</emoji> <b><a"
                             " href='{}'>{}</a> {} {} {}</b> <code>{}</code>".format(
                                 rule["entity_url"],
                                 utils.escape_html(rule["entity_name"]),
@@ -1268,8 +1223,9 @@ class HikkaSecurityMod(loader.Module):
                         + [
                             "\n".join(
                                 [
-                                    "<tg-emoji emoji-id=5870704313440932932>🔒</tg-emoji>"
-                                    " <code>{}</code> <b>{} {} {}</b> <code>{}</code>".format(
+                                    "<emoji document_id=5870704313440932932>🔒</emoji>"
+                                    " <code>{}</code> <b>{} {} {}</b> <code>{}</code>"
+                                    .format(
                                         utils.escape_html(group.name),
                                         self._convert_time(
                                             int(rule["expires"] - time.time())

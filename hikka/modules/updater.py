@@ -28,8 +28,6 @@ from ..inline.types import InlineCall
 
 logger = logging.getLogger(__name__)
 
-_RESTART_DELAY_SEC = 60  # задержка перед перезапуском
-
 
 @loader.tds
 class UpdaterMod(loader.Module):
@@ -124,7 +122,7 @@ class UpdaterMod(loader.Module):
         await self._db.remote_force_save()
 
         if "LAVHOST" in os.environ:
-            subprocess.run(["lavhost", "restart"], check=False)
+            os.system("lavhost restart")
             return
 
         with contextlib.suppress(Exception):
@@ -226,7 +224,7 @@ class UpdaterMod(loader.Module):
     ):
         # We don't really care about asyncio at this point, as we are shutting down
         if hard:
-            subprocess.run(["git", "reset", "--hard", "HEAD"], cwd=os.path.dirname(utils.get_base_dir()), check=False)
+            os.system(f"cd {utils.get_base_dir()} && cd .. && git reset --hard HEAD")
 
         try:
             if "LAVHOST" in os.environ:
@@ -244,7 +242,7 @@ class UpdaterMod(loader.Module):
                     ),
                 )
                 await self.process_restart_message(msg_obj)
-                subprocess.run(["lavhost", "update"], check=False)
+                os.system("lavhost update")
                 return
 
             with contextlib.suppress(Exception):
@@ -299,12 +297,12 @@ class UpdaterMod(loader.Module):
         try:
             folder_id = (
                 max(
-                    (f for f in folders if hasattr(f, "id")),
+                    folders,
                     key=lambda x: x.id,
                 ).id
                 + 1
             )
-        except (ValueError, TypeError):
+        except ValueError:
             folder_id = 2
 
         try:
@@ -423,7 +421,7 @@ class UpdaterMod(loader.Module):
             chat_id, message_id = ms.split(":")
             chat_id, message_id = int(chat_id), int(message_id)
             await self._client.edit_message(chat_id, message_id, msg)
-            await asyncio.sleep(_RESTART_DELAY_SEC)
+            await asyncio.sleep(60)
             await self._client.delete_messages(chat_id, message_id)
             return
 

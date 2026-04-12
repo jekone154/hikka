@@ -86,7 +86,7 @@ class UpdateNotifier(loader.Module):
             self.get("ignore_permanent", False)
             and self.get("ignore_permanent") == self._pending
         ):
-            await asyncio.sleep(_POLL_INTERVAL_SEC)
+            await asyncio.sleep(60)
             return
 
         if self._pending not in {utils.get_git_hash(), self._notified}:

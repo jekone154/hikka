@@ -765,7 +765,7 @@ class Hikka:
             )
 
             if not self.omit_log:
-                logging.info("\n%s", logo)
+                print(logo)
                 web_url = (
                     f"🌐 Web url: {self.web.url}"
                     if self.web and hasattr(self.web, "url")
@@ -780,8 +780,7 @@ class Hikka:
                 )
                 self.omit_log = True
 
-            try:
-                await client.hikka_inline.bot.send_animation(
+            await client.hikka_inline.bot.send_animation(
                 logging.getLogger().handlers[0].get_logid_by_client(client.tg_id),
                 "https://github.com/hikariatama/assets/raw/master/hikka_banner.mp4",
                 caption=(
@@ -796,8 +795,6 @@ class Hikka:
                     )
                 ),
             )
-            except Exception as badge_error:
-                logging.debug("Badge send failed: %s", badge_error)
 
             logging.debug(
                 "· Started for %s · Prefix: «%s» ·",
@@ -901,7 +898,7 @@ class Hikka:
             )
         )
 
-        await asyncio.gather(*[self.amain_wrapper(client) for client in self.clients], return_exceptions=True)
+        await asyncio.gather(*[self.amain_wrapper(client) for client in self.clients])
 
     def main(self):
         """Main entrypoint"""

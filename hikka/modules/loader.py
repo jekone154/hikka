@@ -15,7 +15,6 @@ import importlib
 import inspect
 import logging
 import os
-import subprocess
 import re
 import shutil
 import sys
@@ -464,7 +463,7 @@ class LoaderMod(loader.Module):
     ):
         if any(
             line.replace(" ", "") == "#scope:ffmpeg" for line in doc.splitlines()
-        ) and subprocess.run(["ffmpeg", "-version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0:
+        ) and os.system("ffmpeg -version 1>/dev/null 2>/dev/null"):
             if isinstance(message, Message):
                 await utils.answer(message, self.strings("ffmpeg_required"))
             return

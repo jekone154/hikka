@@ -682,7 +682,7 @@ async def set_avatar(
             ],
         )
     except Exception:
-        logger.debug("Failed to delete welcome message in asset channel", exc_info=True)
+        pass
 
     return True
 
